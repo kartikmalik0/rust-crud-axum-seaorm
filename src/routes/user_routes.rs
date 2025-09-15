@@ -1,4 +1,4 @@
-use axum::{ http::Method, routing::{ delete, get, post, put }, Router };
+use axum::{ http::Method, routing::{ delete, get, put }, Router };
 use tower_http::cors::{ Any, CorsLayer };
 use crate::{ handlers::user_handlers, models::user_models::AppState };
 
