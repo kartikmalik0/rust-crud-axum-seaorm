@@ -3040,6 +3040,7 @@ dependencies = [
  "hyper",
  "sea-orm",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
