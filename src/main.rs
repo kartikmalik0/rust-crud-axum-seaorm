@@ -11,7 +11,7 @@ use std::env;
 mod models;
 mod routes;
 mod handlers;
-
+mod utils;
 // Store your connection string as a constant or environment variable
 
 #[tokio::main]
