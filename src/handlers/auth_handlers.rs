@@ -1,10 +1,14 @@
-use std::{ fmt::format, os::windows::io::IntoRawSocket };
-
 use crate::{
-    models::user_models::{ AppState, CreateUserModel, GetUserModel, UserModel },
-    utils::api_errors::APIError,
+    models::user_models::{
+        AppState,
+        CreateUserModel,
+        GetUserModel,
+        GetUserResponseModel,
+        UserModel,
+    },
+    utils::{ api_errors::APIError, jwt::encode_jwt },
 };
-use axum::{ extract::State, response::{ IntoResponse, Response }, Json };
+use axum::{ extract::State, response::{ IntoResponse }, Json };
 use chrono::Utc;
 use entity::user;
 use hyper::StatusCode;
@@ -13,7 +17,6 @@ use sea_orm::{
     ActiveValue::Set,
     Condition,
     ColumnTrait,
-    DatabaseConnection,
     EntityTrait,
     QueryFilter,
 };
@@ -62,26 +65,10 @@ pub async fn create_user(
 pub async fn get_user(
     State(state): State<AppState>,
     Json(user_data): Json<GetUserModel>
-) -> Result<impl IntoResponse, APIError> {
+) -> Result<Json<GetUserResponseModel>, APIError> {
     let db = &state.db;
 
-    if
-        let Some(_) = user::Entity
-            ::find()
-            .filter(user::Column::Email.eq(user_data.email.clone()))
-            .one(db).await
-            .map_err(|e| APIError {
-                message: format!("DB error while checking user: {}", e),
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                error_code: Some(1),
-            })?
-    {
-        return Err(APIError {
-            message: "User with this email already exists".to_string(),
-            status_code: StatusCode::CONFLICT, // 409
-            error_code: Some(2),
-        });
-    }
+    
 
     let user = user::Entity
         ::find()
@@ -106,13 +93,11 @@ pub async fn get_user(
             error_code: Some(4),
         })?;
 
-    let data = UserModel {
-        name: user.name,
-        email: user.email,
-        password: user.password,
-        uuid: user.uuid,
-        created_at: user.created_at,
-    };
+    let token = encode_jwt(user.email).map_err(|r| APIError {
+        message: "Failed to login".to_string(),
+        status_code: StatusCode::UNAUTHORIZED,
+        error_code: Some(1),
+    })?;
 
-    Ok((StatusCode::OK, Json(data)))
+    Ok(Json(GetUserResponseModel { token }))
 }

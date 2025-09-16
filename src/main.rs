@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use sea_orm::{ Database };
 use tokio::net::TcpListener;
-use axum::{ response::{ IntoResponse }, Router };
+use axum::{ middleware, response::IntoResponse, Router };
 use tracing::{ info, error };
 
 use crate::models::user_models::AppState;
@@ -38,8 +38,10 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
-        .merge(routes::auth_routes::auth_routes())
+
         .merge(routes::user_routes::user_routes())
+        .route_layer(middleware::from_fn_with_state(app_state.clone(), utils::guard::guard))
+        .merge(routes::auth_routes::auth_routes())
         .with_state(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -47,8 +49,4 @@ async fn main() {
 
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn hello() -> impl IntoResponse {
-    "Hey there"
 }

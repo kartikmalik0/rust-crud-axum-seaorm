@@ -39,3 +39,8 @@ pub struct ErrorResponse {
 pub struct AppState {
     pub db: DatabaseConnection,
 }
+
+#[derive(serde::Serialize)]
+pub struct GetUserResponseModel {
+    pub token: String,
+}
